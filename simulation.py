@@ -29,12 +29,17 @@ def init_positions(number_of_atoms, box_length):
     i = 0
     for x in range(points_per_dim):
         for y in range(points_per_dim):
-            positions[i] = [(x * spacing) + (spacing / 2.0), (y * spacing) + (spacing / 2.0), (z * spacing) + (spacing / 2.0)]
+            positions[i] = [
+                (x * spacing) + (spacing / 2.0),
+                (y * spacing) + (spacing / 2.0),
+                (z * spacing) + (spacing / 2.0)
+            ]
         
     # make sure center of mass is the same as center of our geometric box
     offset = np.mean(positions, axis=0) - (box_length / 2.0)
     positions -= offset
     return positions
+
 
 def init_velocities(number_of_atoms, temperature, seed=42):
     rng = np.random.default_rng(seed)
@@ -44,10 +49,28 @@ def init_velocities(number_of_atoms, temperature, seed=42):
     velocities -= np.mean(velocities, axis=0)
 
     # remove 3 degree of freedom because we removed the COM motion
-    degree_of_freedom = 3 * (number_of_atoms - 1)
-    scaler = degree_of_freedom * temperature / np.sum(velocities ** 2)
+    degrees_of_freedom = 3 * (number_of_atoms - 1)
+    scaler = degrees_of_freedom * temperature / np.sum(velocities ** 2)
     velocities *= scaler
     return velocities
+
+
+def kinetic(velocities, mass=1.0):
+    return 0.5 * mass * np.sum(velocities ** 2)
+
+
+def temperature(kinetic, number_of_atoms):
+    degrees_of_freedom = 3.0 * (number_of_atoms - 1)
+    return 2 * kinetic / degrees_of_freedom * boltzmann_const
+
+
+def entropy(velocities, bins=20):
+    speeds = np.linalg.norm(velocities, axis=1)
+    counts, _ = np.histogram(speeds, bins=bins)
+    probs = counts / counts.sum()
+    probs = probs[probs > 0.0]
+    return -1.0 * np.sum(probs * np.log(probs))
+
 
 class Simulation:
     def __init__(self, config):
