@@ -1,8 +1,11 @@
 import tomllib
+import csv
 
 import numpy as np
 
 import lj
+
+boltzmann_const = 8.314e-3
 
 class Config:
     def __init__(self, path):
@@ -18,7 +21,7 @@ class Config:
         self.number_of_atoms = conf['simulation']['number_of_atoms']
         self.steps           = conf['simulation']['steps']
         self.dt              = conf['simulation']['dt']
-        self.box_len         = conf['simulation']['box_length']
+        self.box_length      = conf['simulation']['box_length']
         self.temperature     = conf['simulation']['temperature']
         self.density         = conf['simulation']['density']
 
@@ -60,6 +63,15 @@ def init_velocities(number_of_atoms, temperature, seed=42):
     return velocities
 
 
+def update_pos(pos_prev, pos_curr, acc, dt, box_length):
+    pos = 2.0 * pos_curr - pos_prev + acc * dt ** 2
+    pos = pos % box_length
+    return pos
+
+def update_vel(pos_prev, pos_next, dt):
+    return (pos_next - pos_prev) / (2.0 * dt)
+
+
 def kinetic(velocities, mass=1.0):
     return 0.5 * mass * np.sum(velocities ** 2)
 
@@ -82,12 +94,37 @@ class Simulation:
         self.conf = config
 
     def setup(self):
-        self.pos = init_positions(self.conf.number_of_atoms, self.conf.box_len)
+        self.pos = init_positions(self.conf.number_of_atoms, self.conf.box_length)
         self.vel = init_velocities(self.conf.number_of_atoms, self.conf.temperature)
-        self.acc, _ = lj.compute(self.pos, self.conf.sigma, self.conf.epsilon, self.conf.cutoff, self.conf.box_len)
+        self.force, _ = lj.compute(self.pos, self.conf)
+        self.acc = self.force / self.conf.mass
 
     def state(self):
         pass
 
-    def run(self):
-        pass
+    def simulate(self, runs=10):
+        for run in range(runs):
+            thermo = open(f'thermo-{run:02d}.csv', 'w', newline='')
+            writer = csv.writer(thermo)
+            writer.writerow(['Step', 'Kinetic', 'Potential', 'Energy', 'Entropy', 'Temperature'])
+
+            self.setup()
+
+            self.pos_prev = self.pos - self.vel * self.conf.dt + 0.5 * self.acc * self.conf.dt ** 2
+            self.pos_curr = self.pos.copy()
+            for step in range(self.conf.steps):
+                self.force, pot = lj.compute(self.pos_curr, self.conf)
+                self.acc = self.force / self.conf.mass
+
+                self.pos_next = update_pos(self.pos_prev, self.pos_curr, self.acc, self.conf.dt, self.conf.box_length)
+                self.vel = update_vel(self.pos_prev, self.pos_next, self.conf.dt)
+
+                self.pos_prev, self.pos_curr = self.pos_curr, self.pos_next
+
+                if step in range(0, self.conf.steps + 1, 100):
+                    kin = kinetic(self.vel, self.conf.mass)
+                    ent = entropy(self.vel)
+                    tem = temperature(kin, self.conf.number_of_atoms)
+                    print(f'{int(step/100)} => Kinetic {kin:g}\tPotential {pot:g}\tEnergy {kin+pot:g}\tEntropy {ent:g}\tTemperatrue {tem:g}')
+                    writer.writerow([step / 100, kin, pot, kin + pot, ent, tem])
+
