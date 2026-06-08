@@ -1,0 +1,18 @@
+author = "anonzerg"
+contact = "anonzerg@proton.me"
+source = "https://github.com/anonzerg/molecular-dynamics"
+
+[atom]
+sigma = 3.0400
+epsilon = 0.8786
+mass = 15.9999
+symbol = "O"
+cutoff = 2.5
+
+[simulation]
+number_of_atoms = 64
+steps = 100000
+dt = 0.01
+box_length = 54.72
+temperature = 300.0
+density = 1.0
