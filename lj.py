@@ -21,8 +21,13 @@ def lennard_jones_force(r, sigma, epsilon):
 
 
 @njit(cache=True)
-def compute(pos, sigma, epsilon, cutoff, box_length):
+def compute(pos, conf):
     number_of_atoms = pos.shape[0]
+    sigma = conf.sigma
+    epsilon = conf.epsilon
+    cutoff = conf.cutoff
+    box_length = conf.box_length
+
     forces          = np.zeros_like(pos)
     potential       = 0.0
 
