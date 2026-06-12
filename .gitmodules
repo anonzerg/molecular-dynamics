@@ -1,3 +1,6 @@
 [submodule "pyxyz"]
 	path = pyxyz
 	url = https://github.com/anonzerg/pyxyz.git
+[submodule "visualize-molecules"]
+	path = visualize-molecules
+	url = https://github.com/anonzerg/visualize-molecules.git
