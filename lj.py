@@ -5,7 +5,7 @@ from numba import njit
 # TODO: write docs
 
 @njit(cache=True)
-def lennard_jones_potential(r, sigma, epsilon):
+def lennard_jones_potential(r: float, sigma: float, epsilon:float):
     c  = 4.0 * epsilon
     r6 = (sigma / r) ** 6
 
@@ -13,7 +13,7 @@ def lennard_jones_potential(r, sigma, epsilon):
 
 
 @njit(cache=True)
-def lennard_jones_force(r, sigma, epsilon):
+def lennard_jones_force(r: float, sigma: float, epsilon: float):
     c  = 48.0 * epsilon
     r6 = (sigma / r) ** 6
 
@@ -21,12 +21,8 @@ def lennard_jones_force(r, sigma, epsilon):
 
 
 @njit(cache=True)
-def compute(pos, conf):
+def compute(pos: np.ndarray, sigma: float, epsilon: float, cutoff: float, box_length: float):
     number_of_atoms = pos.shape[0]
-    sigma = conf.sigma
-    epsilon = conf.epsilon
-    cutoff = conf.cutoff
-    box_length = conf.box_length
 
     forces          = np.zeros_like(pos)
     potential       = 0.0
